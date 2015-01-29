@@ -1,46 +1,3 @@
-
-(defun find-min-max-do (my-list)
-	(let* ((len (length my-list))
-			 	 (curr-min (car my-list))
-			   (curr-max (car my-list)))
-		
-	;;TODO: handle if odd, empty, etc
-
-		;;body of let
-		(progn
-			(do ((i 0 (+ i 2))
-					 (my-list my-list (cddr my-list)))
-					((>= i (- len 2)) 'done) ;termination condition
-
-				(let* ((next (car my-list))
-							(next-next (second my-list))
-							(smaller next) ;just setting them to arbitrary values now...
-							(larger next-next))
-					(progn (if (< next next-next)
-									 ;then
-									(progn (setf smaller next)
-												 (setf larger next-next)
-												 (format t "~%~S" my-list)) ;probably fixed it
-									;else
-									(progn (setf smaller next-next)
-												 (setf larger next))) ;end if
-
-								 (if (< smaller curr-min)
-									 (setf curr-min smaller))
-								 
-								 (if (> larger curr-max)
-									 (setf curr-max larger))))
-									
-						;(format t "~%~S" (my-list))
-					;	(if (not (eq (cdr my-list) nil))
-				;			(format t "here"))
-				)	
-			)
-
-
-		;return answer
-		(list curr-min curr-max)))
-
 ;remember to collapse the parens
 (defun find-min-max-recursion (my-list)
 	(find-min-max-recursion-aux my-list (car my-list) (car my-list))
@@ -253,6 +210,8 @@
 (defun build-ttt-board ()
 	 (setf *ttt-board* (make-array '(3 3) :intial-element nil)) 
 )
+
+;(load "project1.lisp") (setf *board* (make-array '(3 3) :initial-contents '((X O O) (O X nil) (nil X X)))) (successors *board* 'X)
 
 ;return states
 ;error check to see if someone already won (if so, no successors)
