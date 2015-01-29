@@ -251,344 +251,187 @@
 
 
 (defun build-ttt-board ()
-	 (setf *ttt-board* (make-array '(3 3))) 
-)
-
-;need to implement copy-array
-(defun add-result-as-successor (successors board i j move)
-	(progn
-		(if (null (aref board i j))
-			(let ((result-ttt-board copy-array(board)))
-				(progn
-					(setf (aref result-ttt-board i j) move)
-					(push result-ttt-board successors)
-				)
-			)
-		)
-	)
+	 (setf *ttt-board* (make-array '(3 3) :intial-element nil)) 
 )
 
 ;return states
 ;error check to see if someone already won (if so, no successors)
 (defun successors (board move)
-	(let ((successors-list (list))
+	(let ((successors-list ())
+				(tanimoto-inputs (get-tanimoto-inputs board))
 			 )
+		(if	(or 
+					(eq (aref tanimoto-inputs 0) 1) 
+					(eq (aref tanimoto-inputs 3) 1)
+				)
+			(return-from successors nil)
+		)
+
+		(dotimes (i (first (array-dimensions board)))
+			(dotimes (j (second (array-dimensions board)))
+				(if (null (aref board i j))
+					;why doesn't (add-result-as-successor successors-list board i j move) work
+					(setf successors-list (add-result-as-successor successors-list board i j move))
+				)
+			)
+		)
+
+		successors-list
+	)
+)
+
+(defun copy-2d-array (arr)
+	(let ((new-array (make-array (array-dimensions arr) :initial-element nil)))
+		(dotimes (i (first (array-dimensions arr)))
+			(dotimes (j (second (array-dimensions arr)))
+				(setf (aref new-array i j) (aref arr i j))
+			)
+		)
+		new-array
+	)
+)
+
+
+(defun add-result-as-successor (successors board i j move)
+	(progn
+		(if (null (aref board i j))
+			(progn
+				(let ((result-ttt-board (copy-2d-array board)))
+					(setf (aref result-ttt-board i j) move)
+					(push result-ttt-board successors)
+				)
+			)
+		)
+		successors ;shouldn't need to grab this
+	)
+)
+
+
+
+;evalute function
+(defun evaluate-tanimoto-function (board)
+ (let ((weights (make-array '(6) :initial-contents '(100 10 1 -100 -10 -1)))
+ 			(res 0)
+			(tanimoto-inputs (get-tanimoto-inputs board))
+ 		 )
+ 	 (dotimes (i 6)
+ 	 	 (setf res (+ res (* (aref weights i) (aref tanimoto-inputs i))))
+ 	 )
+ 	 
+	 res
+ )
+)
+
+
+
+
+;try to get rid of magic numbers
+;makes an array [a, b, c, d, e, f]
+(defun get-tanimoto-inputs (board)
+ (let ((tanimoto-inputs (make-array '(6) :initial-element 0))
+			(numXs 0)
+			(numOs 0)
+			(X 'X)
+			(O 'O)
+			(numRows (first (array-dimensions board)))
+			(numCols (second (array-dimensions board)))
+		 )
+	;handle rows
+	(dotimes (row numRows)
 		(progn
-			(dotimes (i 3)
-				(dotimes (j 3)
-					(if (null (aref board i j))
-						(add-result-as-successor sucessors-list board i j move)
+			(setf numXs 0)
+			(setf numOs 0)
+			(dotimes (col numCols)
+				(progn
+					(if (eq X (aref board row col))
+						(setf numXs (1+ numXs))
+					)
+					(if (eq O (aref board row col))
+						(setf numOs (1+ numOs))
 					)
 				)
 			)
-			successors-list
-		)
+
+			(update-tanimoto-inputs tanimoto-inputs numXs numOs)
+		)	
 	)
-)
-
-;make the board an array to allow for better columns/diagonals traversing
-;make an array [a, b, c, d, e, f]
-;defun tanimoto-heuristic (board)
-;(let ((tanimoto-inputs (make-array '(6) :initial-element 0))
-;			(numXs 0)
-;			(numOs 0)
-;			(X 'X)
-;			(O 'O)
-;		 )
-;	(progn
-;		;update inputs for each line
-;		(dotimes (row 3)
-;			(progn
-;				(setf numXs 0)
-;				(setf numOs 0)
-;				(dotimes (col 3)
-;					(progn
-;						(if (eq X (aref board row col))
-;							(setf numXs (1+ numXs))
-;						)
-;						(if (eq O (aref board row col))
-;							(setf numOs (1+ numOs))
-;						)
-;					)
-;				)
-
-;				(format t "~%row ~a: numXs=~a numOs=~a" row numXs numOs)
-;				(update-tanimoto-inputs tanimoto-inputs numXs numOs)
-;				(format t "~%~a" tanimoto-inputs)
-;			)	
-;		)
-;		
-;		(dotimes (col 3)
-;			(progn
-;				(setf numXs 0)
-;				(setf numOs 0)
-;				(dotimes (row 3)
-;					(progn
-;						(if (eq X (aref board row col))
-;							(setf numXs (1+ numXs))
-;						)
-;						(if (eq O (aref board row col))
-;							(setf numOs (1+ numOs))
-;						)
-;					)
-;				)
-;				
-;				(format t "~%col ~a: numXs=~a numOs=~a" col numXs numOs)
-;				(update-tanimoto-inputs tanimoto-inputs numXs numOs)
-;				(format t "~%~a" tanimoto-inputs)
-;			)	
-;		)
-
-;		(dotimes (row-col 3)
-;			(progn
-;				(setf numXs 0)
-;				(setf numOs 0)
-;				(if (eq X (aref board row-col row-col))
-;					(setf numXs (1+ numXs))
-;				)
-;				(if (eq O (aref board row-col row-col))
-;					(setf numOs (1+ numOs))
-;				)
-;			)
-;		)
-;		
-;		(format t "~%row-col ~a: numXs=~a numOs=~a" '0 numXs numOs)
-;		(update-tanimoto-inputs tanimoto-inputs numXs numOs)
-;		(format t "~%~a" tanimoto-inputs)
-
-
-;		(dotimes (row-col 3)
-;			(progn
-;				(setf numXs 0)
-;				(setf numOs 0)
-;				(let ((other-diag-row-col (- 2 row-col)))
-;					(progn
-;						(if (eq X (aref board other-diag-row-col other-diag-row-col))
-;							(setf numXs (1+ numXs))
-;						)
-;						(if (eq O (aref board other-diag-row-col other-diag-row-col))
-;							(setf numOs (1+ numOs))
-;						)
-;					)
-;				)
-;			)
-;		)
-;			
-;			(format t "~%row-col ~a: numXs=~a numOs=~a" '1 numXs numOs)
-;			(update-tanimoto-inputs tanimoto-inputs numXs numOs)
-;			(format t "~%~a" tanimoto-inputs)
-
-
-
-
-;			(evaluate-tanimoto-function tanimoto-inputs)
-;	)
-;)
-;
-
-;works
-;defun update-tanimoto-inputs (tanimoto-inputs numXs numOs)
-;(progn
-;	(if (eq numOs 0)
-;		(cond
-;			((eq numXs 3)	(setf (aref tanimoto-inputs 0) (1+ (aref tanimoto-inputs 0))))
-;			((eq numXs 2) (setf (aref tanimoto-inputs 1) (1+ (aref tanimoto-inputs 1))))
-;			((eq numXs 1)	(setf (aref tanimoto-inputs 2) (1+ (aref tanimoto-inputs 2))))
-;		)
-;	)
-;	(if (eq numXs 0)
-;		(cond
-;			((eq numOs 3)	(setf (aref tanimoto-inputs 3) (1+ (aref tanimoto-inputs 3))))
-;			((eq numOs 2) (setf (aref tanimoto-inputs 4) (1+ (aref tanimoto-inputs 4))))
-;			((eq numOs 1)	(setf (aref tanimoto-inputs 5) (1+ (aref tanimoto-inputs 5))))
-;		)
-;	)
-;	tanimoto-inputs
-;)
-;
-
-;works
-;defun evaluate-tanimoto-function (tanimoto-inputs)
-;(let ((weights (make-array '(6) :initial-contents '(100 10 1 -100 -10 -1)))
-;			(res 0)
-;		 )
-;	(progn
-;		(dotimes (i 6)
-;			(setf res (+ res (* (aref weights i) (aref tanimoto-inputs i))))
-;		)
-;		res
-;	)
-;)
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(defun test-nth ()
-	(let ((my-list '(a b c)))
-		(format t "~% first is ~a" (nth 0 my-list))))
-
-(defun test-do ()
-	(let ((my-list '(x y z)))
-		(do ((i 0 (1+ i)))
-				 ((eq i 10) 'hello)
-			(format t "~%~a" i))))
-
-
-(defun test-dolist ()
-	(let ((my-list '(a b c d)))
-				(dolist (elem my-list 'whatsup)
-					(format t "~%~a" elem))))
-								 
-
-(defun testdotimes ()
-	(let ((upper-bound 2))
-		(dotimes (cnt upper-bound result)
-			(setf result (1+ cnt))
-			(format t "~%The output: ~a" result))))
-
-(defun test-if ()
-	(let* ((x 5)
-				(y 6)
-				(z 5)
-				(arg1 x)
-				(arg2 z))
-		(if (eq arg1 arg2)
-			(format t "~%~a and ~a ~a" arg1 arg2 '"are equal!")
-			(format t "~%~a and ~a ~a " arg1 arg2 '"are not equal!"))))
-
-
-(defun testlet ()
-	(let ((m 2)
-				(result 3)) 
-		5))
-
-
-(defun test-assign-vars ()
-	(setf my-var 1)
-	(setf my-var-2 2)
-	(setf result (+ my-var my-var-2))
-	(setf my -1)
-	(format t "The output: ~a~%" result))
-
-
-
-
-;works
-(defun update-tanimoto-inputs (tanimoto-inputs numXs numOs)
-	(progn
-		(if (eq numOs 0)
-			(cond
-				((eq numXs 3)	(setf (aref tanimoto-inputs 0) (1+ (aref tanimoto-inputs 0))))
-				((eq numXs 2) (setf (aref tanimoto-inputs 1) (1+ (aref tanimoto-inputs 1))))
-				((eq numXs 1)	(setf (aref tanimoto-inputs 2) (1+ (aref tanimoto-inputs 2))))
-			)
-		)
-		(if (eq numXs 0)
-			(cond
-				((eq numOs 3)	(setf (aref tanimoto-inputs 3) (1+ (aref tanimoto-inputs 3))))
-				((eq numOs 2) (setf (aref tanimoto-inputs 4) (1+ (aref tanimoto-inputs 4))))
-				((eq numOs 1)	(setf (aref tanimoto-inputs 5) (1+ (aref tanimoto-inputs 5))))
-			)
-		)
-		tanimoto-inputs
-	)
-)
-
-;works
-(defun evaluate-tanimoto-function (tanimoto-inputs)
-	(let ((weights (make-array '(6) :initial-contents '(100 10 1 -100 -10 -1)))
-				(res 0)
-			 )
+	
+	;handle cols
+	(dotimes (col numCols)
 		(progn
-			(dotimes (i 6)
-				(setf res (+ res (* (aref weights i) (aref tanimoto-inputs i))))
+			(setf numXs 0)
+			(setf numOs 0)
+			(dotimes (row numRows)
+				(progn
+					(if (eq X (aref board row col))
+						(setf numXs (1+ numXs))
+					)
+					(if (eq O (aref board row col))
+						(setf numOs (1+ numOs))
+					)
+				)
 			)
-			res
+			
+			(update-tanimoto-inputs tanimoto-inputs numXs numOs)
+		)	
+	)
+
+	;handle diagonals
+	(setf numXs 0)
+	(setf numOs 0)
+	(dotimes (row-col numRows)
+		(progn
+			(if (eq X (aref board row-col row-col))
+				(setf numXs (1+ numXs))
+			)
+			(if (eq O (aref board row-col row-col))
+				(setf numOs (1+ numOs))
+			)
 		)
 	)
+	(update-tanimoto-inputs tanimoto-inputs numXs numOs)
+
+
+	(setf numXs 0)
+	(setf numOs 0)
+	(dotimes (row-col numRows)
+		(progn
+			(if (eq X (aref board (- (1- numRows) row-col) row-col))
+				(setf numXs (1+ numXs))
+			)
+			(if (eq O (aref board (- (1- numRows) row-col) row-col))
+				(setf numOs (1+ numOs))
+			)
+		)
+	)
+	(update-tanimoto-inputs tanimoto-inputs numXs numOs)
+
+	tanimoto-inputs
+ )
+)
+
+;updates inputs array based on numXs and numOs
+(defun update-tanimoto-inputs (tanimoto-inputs numXs numOs)
+ (progn
+ 	(if (eq numOs 0)
+ 		(cond
+ 			((eq numXs 3)	(setf (aref tanimoto-inputs 0) (1+ (aref tanimoto-inputs 0))))
+ 			((eq numXs 2) (setf (aref tanimoto-inputs 1) (1+ (aref tanimoto-inputs 1))))
+ 			((eq numXs 1)	(setf (aref tanimoto-inputs 2) (1+ (aref tanimoto-inputs 2))))
+ 		)
+ 	)
+ 	(if (eq numXs 0)
+ 		(cond
+ 			((eq numOs 3)	(setf (aref tanimoto-inputs 3) (1+ (aref tanimoto-inputs 3))))
+ 			((eq numOs 2) (setf (aref tanimoto-inputs 4) (1+ (aref tanimoto-inputs 4))))
+ 			((eq numOs 1)	(setf (aref tanimoto-inputs 5) (1+ (aref tanimoto-inputs 5))))
+ 		)
+ 	)
+ 	tanimoto-inputs
+ )
 )
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(defun test-nth ()
-	(let ((my-list '(a b c)))
-		(format t "~% first is ~a" (nth 0 my-list))))
-
-(defun test-do ()
-	(let ((my-list '(x y z)))
-		(do ((i 0 (1+ i)))
-				 ((eq i 10) 'hello)
-			(format t "~%~a" i))))
-
-
-(defun test-dolist ()
-	(let ((my-list '(a b c d)))
-				(dolist (elem my-list 'whatsup)
-					(format t "~%~a" elem))))
-								 
-
-(defun testdotimes ()
-	(let ((upper-bound 2))
-		(dotimes (cnt upper-bound result)
-			(setf result (1+ cnt))
-			(format t "~%The output: ~a" result))))
-
-(defun test-if ()
-	(let* ((x 5)
-				(y 6)
-				(z 5)
-				(arg1 x)
-				(arg2 z))
-		(if (eq arg1 arg2)
-			(format t "~%~a and ~a ~a" arg1 arg2 '"are equal!")
-			(format t "~%~a and ~a ~a " arg1 arg2 '"are not equal!"))))
-
-
-(defun testlet ()
-	(let ((m 2)
-				(result 3)) 
-		5))
-
-
-(defun test-assign-vars ()
-	(setf my-var 1)
-	(setf my-var-2 2)
-	(setf result (+ my-var my-var-2))
-	(setf my -1)
-	(format t "The output: ~a~%" result))
