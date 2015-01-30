@@ -378,7 +378,7 @@
 						 (row 0 (1+ row)))
 					((eq curr-input 'eof) 'done) ;termination condition
 					
-					(dotimes (col y-dimen)
+					(dotimes (col x-dimen)
 						(setf curr-char (char curr-input col))
 						(cond 
 							((eq curr-char #\S) 
@@ -412,6 +412,7 @@
 		(setf (aref (get problem 'goal-state) (first goal-location) (second goal-location)) #\G)
 
 		(format t "~% ~a ~a ~a" (get problem 'maze) (get problem 'start-state) (get problem 'goal-state))
+
 		problem
 	)
 )
